@@ -138,3 +138,76 @@ function createAndAppendTodo(todo) {
 for (let todo of todoList) {
     createAndAppendTodo(todo);
 }
+let generateTasksButton =
+    document.getElementById("generateTasksButton");
+
+let aiSuggestions =
+    document.getElementById("aiSuggestions");
+
+let aiLoading =
+    document.getElementById("aiLoading");
+
+generateTasksButton.onclick = async function() {
+    let goal = document.getElementById("aiTaskInput").value.trim();
+
+    if (goal === "") {
+        alert("Please describe your goal");
+        return;
+    }
+
+    aiLoading.hidden = false;
+    aiSuggestions.innerHTML = "";
+
+    try {
+        const response = await fetch("/api/breakdown", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                goal: goal
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to generate tasks");
+        }
+
+        const data = await response.json();
+
+        data.tasks.forEach(function(task) {
+            let li = document.createElement("li");
+            li.textContent = task;
+
+            let button = document.createElement("button");
+            button.textContent = "Add";
+
+            button.onclick = function() {
+                todosCount++;
+
+                let newTodo = {
+                    text: task,
+                    uniqueNo: todosCount,
+                    isChecked: false
+                };
+
+                todoList.push(newTodo);
+                createAndAppendTodo(newTodo);
+
+                localStorage.setItem(
+                    "todoList",
+                    JSON.stringify(todoList)
+                );
+            };
+
+            li.appendChild(button);
+            aiSuggestions.appendChild(li);
+        });
+
+    } catch (error) {
+        alert("Unable to generate tasks. Please try again.");
+        console.error(error);
+    } finally {
+        aiLoading.hidden = true;
+    }
+};
