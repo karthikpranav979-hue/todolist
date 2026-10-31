@@ -213,94 +213,141 @@ saveTodoButton.addEventListener("click", function() {
     alert("Tasks saved successfully!");
 });
 
-const AI_API_URL = "";
 
-generateTasksButton.addEventListener("click", async function() {
-    const goal = aiTaskInput.value.trim();
+generateTasksButton.addEventListener("click", function() {
+    const goal = aiTaskInput.value.trim().toLowerCase();
 
     if (goal === "") {
         alert("Please describe your goal.");
         return;
     }
 
-    if (AI_API_URL === "") {
-        alert("AI backend is not connected yet.");
-        return;
+    let tasks = [];
+
+    if (goal.includes("dsa") || goal.includes("data structure") || goal.includes("algorithm")) {
+        tasks = [
+            "Revise arrays and strings",
+            "Practice two pointer problems",
+            "Learn sliding window technique",
+            "Practice binary search problems",
+            "Solve linked list problems",
+            "Study stacks and queues",
+            "Learn trees and binary search trees",
+            "Practice graph algorithms",
+            "Solve dynamic programming problems",
+            "Revise important DSA concepts"
+        ];
+    } 
+    else if (goal.includes("interview") || goal.includes("job")) {
+        tasks = [
+            "Prepare your self introduction",
+            "Revise data structures and algorithms",
+            "Practice coding interview questions",
+            "Study object oriented programming",
+            "Revise DBMS concepts",
+            "Practice SQL queries",
+            "Learn operating system fundamentals",
+            "Prepare your project explanations",
+            "Practice mock interviews",
+            "Research the company"
+        ];
+    } 
+    else if (goal.includes("web development") || goal.includes("website") || goal.includes("web developer")) {
+        tasks = [
+            "Revise HTML fundamentals",
+            "Learn CSS layouts and Flexbox",
+            "Practice responsive web design",
+            "Learn JavaScript fundamentals",
+            "Practice DOM manipulation",
+            "Understand JavaScript events",
+            "Learn promises and async/await",
+            "Build a small project",
+            "Learn Git and GitHub",
+            "Deploy your project"
+        ];
+    } 
+    else if (goal.includes("python") || goal.includes("programming") || goal.includes("coding")) {
+        tasks = [
+            "Learn variables and data types",
+            "Practice conditional statements",
+            "Learn loops",
+            "Understand functions",
+            "Practice arrays and strings",
+            "Learn object-oriented programming",
+            "Solve beginner coding problems",
+            "Build a mini project"
+        ];
+    } 
+    else if (goal.includes("fitness") || goal.includes("weight") || goal.includes("exercise")) {
+        tasks = [
+            "Set a realistic fitness goal",
+            "Plan your daily workout",
+            "Start with a warm-up",
+            "Practice basic strength exercises",
+            "Include daily walking",
+            "Plan balanced meals",
+            "Drink enough water",
+            "Track your daily progress"
+        ];
+    } 
+    else if (goal.includes("exam") || goal.includes("study") || goal.includes("learn")) {
+        tasks = [
+            "List all the topics to study",
+            "Divide topics into smaller sections",
+            "Study the first topic",
+            "Make short notes",
+            "Practice important questions",
+            "Revise previously studied topics",
+            "Take a practice test",
+            "Review your mistakes"
+        ];
+    } 
+    else {
+        tasks = [
+            "Define your main goal clearly",
+            "Research the steps required",
+            "Divide the goal into smaller tasks",
+            "Complete the first task",
+            "Track your daily progress",
+            "Review what you have completed",
+            "Identify areas for improvement",
+            "Complete the remaining tasks"
+        ];
     }
 
-    aiLoading.hidden = false;
-    generateTasksButton.disabled = true;
     aiSuggestions.innerHTML = "";
 
-    try {
-        const response = await fetch(AI_API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                goal: goal
-            })
+    tasks.forEach(function(task) {
+        const li = document.createElement("li");
+
+        const taskText = document.createElement("span");
+        taskText.textContent = task;
+
+        const addButton = document.createElement("button");
+        addButton.textContent = "Add to My Tasks";
+        addButton.type = "button";
+        addButton.classList.add("button", "ai-add-button");
+
+        addButton.addEventListener("click", function() {
+            todosCount++;
+
+            const newTodo = {
+                text: task,
+                uniqueNo: todosCount,
+                isChecked: false
+            };
+
+            todoList.push(newTodo);
+            createAndAppendTodo(newTodo);
+            saveTodos();
+
+            addButton.textContent = "Added";
+            addButton.disabled = true;
         });
 
-        if (!response.ok) {
-            throw new Error("AI server returned an error.");
-        }
+        li.appendChild(taskText);
+        li.appendChild(addButton);
 
-        const data = await response.json();
-
-        if (!Array.isArray(data.tasks)) {
-            throw new Error("Invalid AI response.");
-        }
-
-        if (data.tasks.length === 0) {
-            throw new Error("No tasks generated.");
-        }
-
-        data.tasks.forEach(function(task) {
-            if (typeof task !== "string" || task.trim() === "") {
-                return;
-            }
-
-            const li = document.createElement("li");
-
-            const taskText = document.createElement("span");
-            taskText.textContent = task.trim();
-
-            li.appendChild(taskText);
-
-            const addButton = document.createElement("button");
-
-            addButton.textContent = "Add to My Tasks";
-            addButton.type = "button";
-            addButton.classList.add("button", "ai-add-button");
-
-            addButton.addEventListener("click", function() {
-                todosCount++;
-
-                const newTodo = {
-                    text: task.trim(),
-                    uniqueNo: todosCount,
-                    isChecked: false
-                };
-
-                todoList.push(newTodo);
-                createAndAppendTodo(newTodo);
-                saveTodos();
-
-                addButton.disabled = true;
-                addButton.textContent = "Added";
-            });
-
-            li.appendChild(addButton);
-            aiSuggestions.appendChild(li);
-        });
-
-    } catch (error) {
-        console.error(error);
-        alert("Unable to generate tasks. Please try again.");
-    } finally {
-        aiLoading.hidden = true;
-        generateTasksButton.disabled = false;
-    }
+        aiSuggestions.appendChild(li);
+    });
 });
