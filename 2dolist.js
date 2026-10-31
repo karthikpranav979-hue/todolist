@@ -1,165 +1,239 @@
-let todoItemsContainer = document.getElementById("todoItemsContainer");
-let addTodoButton = document.getElementById("addTodoButton");
-let saveTodoButton = document.getElementById("saveTodoButton");
+
+const todoItemsContainer = document.getElementById("todoItemsContainer");
+const addTodoButton = document.getElementById("addTodoButton");
+const saveTodoButton = document.getElementById("saveTodoButton");
+const todoUserInput = document.getElementById("todoUserInput");
+
+const generateTasksButton = document.getElementById("generateTasksButton");
+const aiTaskInput = document.getElementById("aiTaskInput");
+const aiSuggestions = document.getElementById("aiSuggestions");
+const aiLoading = document.getElementById("aiLoading");
 
 function getTodoListFromLocalStorage() {
-    let stringifiedTodoList = localStorage.getItem("todoList");
-    let parsedTodoList = JSON.parse(stringifiedTodoList);
-    if (parsedTodoList === null) {
+    try {
+        const storedTodoList = localStorage.getItem("todoList");
+
+        if (storedTodoList === null) {
+            return [];
+        }
+
+        const parsedTodoList = JSON.parse(storedTodoList);
+
+        if (!Array.isArray(parsedTodoList)) {
+            return [];
+        }
+
+        return parsedTodoList.filter(function(todo) {
+            return (
+                todo &&
+                typeof todo.text === "string" &&
+                Number.isInteger(todo.uniqueNo) &&
+                typeof todo.isChecked === "boolean"
+            );
+        });
+
+    } catch (error) {
+        console.error(error);
         return [];
-    } else {
-        return parsedTodoList;
+    }
+}
+
+function saveTodos() {
+    try {
+        localStorage.setItem("todoList", JSON.stringify(todoList));
+    } catch (error) {
+        console.error(error);
+        alert("Unable to save tasks.");
     }
 }
 
 let todoList = getTodoListFromLocalStorage();
-let todosCount = todoList.length;
 
-saveTodoButton.onclick = function() {
-    localStorage.setItem("todoList", JSON.stringify(todoList));
-};
+let todosCount = todoList.reduce(function(maxId, todo) {
+    return Math.max(maxId, todo.uniqueNo);
+}, 0);
 
 function onAddTodo() {
-    let userInputElement = document.getElementById("todoUserInput");
-    let userInputValue = userInputElement.value;
+    const userInputValue = todoUserInput.value.trim();
 
     if (userInputValue === "") {
-        alert("Enter Valid Text");
+        alert("Please enter a valid task.");
         return;
     }
 
-    todosCount = todosCount + 1;
+    todosCount++;
 
-    let newTodo = {
+    const newTodo = {
         text: userInputValue,
         uniqueNo: todosCount,
         isChecked: false
     };
+
     todoList.push(newTodo);
     createAndAppendTodo(newTodo);
-    userInputElement.value = "";
+    saveTodos();
+
+    todoUserInput.value = "";
 }
 
-addTodoButton.onclick = function() {
-    onAddTodo();
-};
+addTodoButton.addEventListener("click", onAddTodo);
 
-function onTodoStatusChange(checkboxId, labelId, todoId) {
-    let checkboxElement = document.getElementById(checkboxId);
-    let labelElement = document.getElementById(labelId);
-    labelElement.classList.toggle("checked");
+todoUserInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        onAddTodo();
+    }
+});
 
-    let todoObjectIndex = todoList.findIndex(function(eachTodo) {
-        let eachTodoId = "todo" + eachTodo.uniqueNo;
-
-        if (eachTodoId === todoId) {
-            return true;
-        } else {
-            return false;
-        }
+function onTodoStatusChange(todoId, checkboxElement, labelElement) {
+    const todoObject = todoList.find(function(eachTodo) {
+        return "todo" + eachTodo.uniqueNo === todoId;
     });
 
-    let todoObject = todoList[todoObjectIndex];
-
-    if (todoObject.isChecked === true) {
-        todoObject.isChecked = false;
-    } else {
-        todoObject.isChecked = true;
+    if (!todoObject) {
+        return;
     }
 
+    todoObject.isChecked = checkboxElement.checked;
+
+    labelElement.classList.toggle(
+        "checked",
+        checkboxElement.checked
+    );
+
+    saveTodos();
 }
 
 function onDeleteTodo(todoId) {
-    let todoElement = document.getElementById(todoId);
+    const todoElement = document.getElementById(todoId);
+
+    if (!todoElement) {
+        return;
+    }
+
     todoItemsContainer.removeChild(todoElement);
 
-    let deleteElementIndex = todoList.findIndex(function(eachTodo) {
-        let eachTodoId = "todo" + eachTodo.uniqueNo;
-        if (eachTodoId === todoId) {
-            return true;
-        } else {
-            return false;
-        }
+    todoList = todoList.filter(function(eachTodo) {
+        return "todo" + eachTodo.uniqueNo !== todoId;
     });
 
-    todoList.splice(deleteElementIndex, 1);
+    saveTodos();
 }
 
 function createAndAppendTodo(todo) {
-    let todoId = "todo" + todo.uniqueNo;
-    let checkboxId = "checkbox" + todo.uniqueNo;
-    let labelId = "label" + todo.uniqueNo;
+    const todoId = "todo" + todo.uniqueNo;
+    const checkboxId = "checkbox" + todo.uniqueNo;
+    const labelId = "label" + todo.uniqueNo;
 
-    let todoElement = document.createElement("li");
-    todoElement.classList.add("todo-item-container", "d-flex", "flex-row");
+    const todoElement = document.createElement("li");
+
+    todoElement.classList.add(
+        "todo-item-container",
+        "d-flex",
+        "flex-row"
+    );
+
     todoElement.id = todoId;
     todoItemsContainer.appendChild(todoElement);
 
-    let inputElement = document.createElement("input");
+    const inputElement = document.createElement("input");
+
     inputElement.type = "checkbox";
     inputElement.id = checkboxId;
     inputElement.checked = todo.isChecked;
 
-    inputElement.onclick = function() {
-        onTodoStatusChange(checkboxId, labelId, todoId);
-    };
-
     inputElement.classList.add("checkbox-input");
+
     todoElement.appendChild(inputElement);
 
-    let labelContainer = document.createElement("div");
-    labelContainer.classList.add("label-container", "d-flex", "flex-row");
+    const labelContainer = document.createElement("div");
+
+    labelContainer.classList.add(
+        "label-container",
+        "d-flex",
+        "flex-row"
+    );
+
     todoElement.appendChild(labelContainer);
 
-    let labelElement = document.createElement("label");
+    const labelElement = document.createElement("label");
+
     labelElement.setAttribute("for", checkboxId);
     labelElement.id = labelId;
     labelElement.classList.add("checkbox-label");
     labelElement.textContent = todo.text;
-    if (todo.isChecked === true) {
+
+    if (todo.isChecked) {
         labelElement.classList.add("checked");
     }
+
     labelContainer.appendChild(labelElement);
 
-    let deleteIconContainer = document.createElement("div");
+    inputElement.addEventListener("change", function() {
+        onTodoStatusChange(todoId, inputElement, labelElement);
+    });
+
+    const deleteIconContainer = document.createElement("div");
+
     deleteIconContainer.classList.add("delete-icon-container");
+
     labelContainer.appendChild(deleteIconContainer);
 
-    let deleteIcon = document.createElement("i");
-    deleteIcon.classList.add("far", "fa-trash-alt", "delete-icon");
+    const deleteIcon = document.createElement("i");
 
-    deleteIcon.onclick = function() {
+    deleteIcon.classList.add(
+        "far",
+        "fa-trash-alt",
+        "delete-icon"
+    );
+
+    deleteIcon.setAttribute("role", "button");
+    deleteIcon.setAttribute("tabindex", "0");
+    deleteIcon.setAttribute("aria-label", "Delete task");
+
+    deleteIcon.addEventListener("click", function() {
         onDeleteTodo(todoId);
-    };
+    });
+
+    deleteIcon.addEventListener("keydown", function(event) {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onDeleteTodo(todoId);
+        }
+    });
 
     deleteIconContainer.appendChild(deleteIcon);
 }
 
-for (let todo of todoList) {
+for (const todo of todoList) {
     createAndAppendTodo(todo);
 }
-let generateTasksButton =
-    document.getElementById("generateTasksButton");
 
-let aiSuggestions =
-    document.getElementById("aiSuggestions");
+saveTodoButton.addEventListener("click", function() {
+    saveTodos();
+    alert("Tasks saved successfully!");
+});
 
-let aiLoading =
-    document.getElementById("aiLoading");
+const AI_API_URL = "";
 
-generateTasksButton.onclick = async function() {
-    let goal = document.getElementById("aiTaskInput").value.trim();
+generateTasksButton.addEventListener("click", async function() {
+    const goal = aiTaskInput.value.trim();
 
     if (goal === "") {
-        alert("Please describe your goal");
+        alert("Please describe your goal.");
+        return;
+    }
+
+    if (AI_API_URL === "") {
+        alert("AI backend is not connected yet.");
         return;
     }
 
     aiLoading.hidden = false;
+    generateTasksButton.disabled = true;
     aiSuggestions.innerHTML = "";
 
     try {
-        const response = await fetch("/api/breakdown", {
+        const response = await fetch(AI_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -170,44 +244,63 @@ generateTasksButton.onclick = async function() {
         });
 
         if (!response.ok) {
-            throw new Error("Failed to generate tasks");
+            throw new Error("AI server returned an error.");
         }
 
         const data = await response.json();
 
+        if (!Array.isArray(data.tasks)) {
+            throw new Error("Invalid AI response.");
+        }
+
+        if (data.tasks.length === 0) {
+            throw new Error("No tasks generated.");
+        }
+
         data.tasks.forEach(function(task) {
-            let li = document.createElement("li");
-            li.textContent = task;
+            if (typeof task !== "string" || task.trim() === "") {
+                return;
+            }
 
-            let button = document.createElement("button");
-            button.textContent = "Add";
+            const li = document.createElement("li");
 
-            button.onclick = function() {
+            const taskText = document.createElement("span");
+            taskText.textContent = task.trim();
+
+            li.appendChild(taskText);
+
+            const addButton = document.createElement("button");
+
+            addButton.textContent = "Add to My Tasks";
+            addButton.type = "button";
+            addButton.classList.add("button", "ai-add-button");
+
+            addButton.addEventListener("click", function() {
                 todosCount++;
 
-                let newTodo = {
-                    text: task,
+                const newTodo = {
+                    text: task.trim(),
                     uniqueNo: todosCount,
                     isChecked: false
                 };
 
                 todoList.push(newTodo);
                 createAndAppendTodo(newTodo);
+                saveTodos();
 
-                localStorage.setItem(
-                    "todoList",
-                    JSON.stringify(todoList)
-                );
-            };
+                addButton.disabled = true;
+                addButton.textContent = "Added";
+            });
 
-            li.appendChild(button);
+            li.appendChild(addButton);
             aiSuggestions.appendChild(li);
         });
 
     } catch (error) {
-        alert("Unable to generate tasks. Please try again.");
         console.error(error);
+        alert("Unable to generate tasks. Please try again.");
     } finally {
         aiLoading.hidden = true;
+        generateTasksButton.disabled = false;
     }
-};
+});
