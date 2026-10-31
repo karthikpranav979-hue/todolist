@@ -9,6 +9,8 @@ const aiTaskInput = document.getElementById("aiTaskInput");
 const aiSuggestions = document.getElementById("aiSuggestions");
 const aiLoading = document.getElementById("aiLoading");
 
+const AI_API_URL = "http://localhost:3000/api/breakdown";
+
 function getTodoListFromLocalStorage() {
     try {
         const storedTodoList = localStorage.getItem("todoList");
@@ -31,12 +33,17 @@ function getTodoListFromLocalStorage() {
                 typeof todo.isChecked === "boolean"
             );
         });
-
     } catch (error) {
         console.error(error);
         return [];
     }
 }
+
+let todoList = getTodoListFromLocalStorage();
+
+let todosCount = todoList.reduce(function(maxId, todo) {
+    return Math.max(maxId, todo.uniqueNo);
+}, 0);
 
 function saveTodos() {
     try {
@@ -47,11 +54,19 @@ function saveTodos() {
     }
 }
 
-let todoList = getTodoListFromLocalStorage();
+function addTodoToList(taskText) {
+    const newTodo = {
+        text: taskText,
+        uniqueNo: ++todosCount,
+        isChecked: false
+    };
 
-let todosCount = todoList.reduce(function(maxId, todo) {
-    return Math.max(maxId, todo.uniqueNo);
-}, 0);
+    todoList.push(newTodo);
+    createAndAppendTodo(newTodo);
+    saveTodos();
+
+    return newTodo;
+}
 
 function onAddTodo() {
     const userInputValue = todoUserInput.value.trim();
@@ -61,18 +76,7 @@ function onAddTodo() {
         return;
     }
 
-    todosCount++;
-
-    const newTodo = {
-        text: userInputValue,
-        uniqueNo: todosCount,
-        isChecked: false
-    };
-
-    todoList.push(newTodo);
-    createAndAppendTodo(newTodo);
-    saveTodos();
-
+    addTodoToList(userInputValue);
     todoUserInput.value = "";
 }
 
@@ -140,7 +144,6 @@ function createAndAppendTodo(todo) {
     inputElement.type = "checkbox";
     inputElement.id = checkboxId;
     inputElement.checked = todo.isChecked;
-
     inputElement.classList.add("checkbox-input");
 
     todoElement.appendChild(inputElement);
@@ -173,7 +176,6 @@ function createAndAppendTodo(todo) {
     });
 
     const deleteIconContainer = document.createElement("div");
-
     deleteIconContainer.classList.add("delete-icon-container");
 
     labelContainer.appendChild(deleteIconContainer);
@@ -213,133 +215,75 @@ saveTodoButton.addEventListener("click", function() {
     alert("Tasks saved successfully!");
 });
 
-
-generateTasksButton.addEventListener("click", function() {
-    const goal = aiTaskInput.value.trim().toLowerCase();
+async function generateAITasks() {
+    const goal = aiTaskInput.value.trim();
 
     if (goal === "") {
         alert("Please describe your goal.");
         return;
     }
 
-    let tasks = [];
+    generateTasksButton.disabled = true;
+    aiLoading.hidden = false;
+    aiSuggestions.innerHTML = "";
 
-    if (goal.includes("dsa") || goal.includes("data structure") || goal.includes("algorithm")) {
-        tasks = [
-            "Revise arrays and strings",
-            "Practice two pointer problems",
-            "Learn sliding window technique",
-            "Practice binary search problems",
-            "Solve linked list problems",
-            "Study stacks and queues",
-            "Learn trees and binary search trees",
-            "Practice graph algorithms",
-            "Solve dynamic programming problems",
-            "Revise important DSA concepts"
-        ];
-    } 
-    else if (goal.includes("interview") || goal.includes("job")) {
-        tasks = [
-            "Prepare your self introduction",
-            "Revise data structures and algorithms",
-            "Practice coding interview questions",
-            "Study object oriented programming",
-            "Revise DBMS concepts",
-            "Practice SQL queries",
-            "Learn operating system fundamentals",
-            "Prepare your project explanations",
-            "Practice mock interviews",
-            "Research the company"
-        ];
-    } 
-    else if (goal.includes("web development") || goal.includes("website") || goal.includes("web developer")) {
-        tasks = [
-            "Revise HTML fundamentals",
-            "Learn CSS layouts and Flexbox",
-            "Practice responsive web design",
-            "Learn JavaScript fundamentals",
-            "Practice DOM manipulation",
-            "Understand JavaScript events",
-            "Learn promises and async/await",
-            "Build a small project",
-            "Learn Git and GitHub",
-            "Deploy your project"
-        ];
-    } 
-    else if (goal.includes("python") || goal.includes("programming") || goal.includes("coding")) {
-        tasks = [
-            "Learn variables and data types",
-            "Practice conditional statements",
-            "Learn loops",
-            "Understand functions",
-            "Practice arrays and strings",
-            "Learn object-oriented programming",
-            "Solve beginner coding problems",
-            "Build a mini project"
-        ];
-    } 
-    else if (goal.includes("fitness") || goal.includes("weight") || goal.includes("exercise")) {
-        tasks = [
-            "Set a realistic fitness goal",
-            "Plan your daily workout",
-            "Start with a warm-up",
-            "Practice basic strength exercises",
-            "Include daily walking",
-            "Plan balanced meals",
-            "Drink enough water",
-            "Track your daily progress"
-        ];
-    } 
-    else if (goal.includes("exam") || goal.includes("study") || goal.includes("learn")) {
-        tasks = [
-            "List all the topics to study",
-            "Divide topics into smaller sections",
-            "Study the first topic",
-            "Make short notes",
-            "Practice important questions",
-            "Revise previously studied topics",
-            "Take a practice test",
-            "Review your mistakes"
-        ];
-    } 
-    else {
-        tasks = [
-            "Define your main goal clearly",
-            "Research the steps required",
-            "Divide the goal into smaller tasks",
-            "Complete the first task",
-            "Track your daily progress",
-            "Review what you have completed",
-            "Identify areas for improvement",
-            "Complete the remaining tasks"
-        ];
+    try {
+        const response = await fetch(AI_API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                goal: goal
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to generate tasks.");
+        }
+
+        if (!Array.isArray(data.tasks) || data.tasks.length === 0) {
+            throw new Error("Gemini did not return any tasks.");
+        }
+
+        displayAISuggestions(data.tasks);
+
+    } catch (error) {
+        console.error("AI Error:", error);
+        alert("Unable to generate tasks: " + error.message);
+    } finally {
+        generateTasksButton.disabled = false;
+        aiLoading.hidden = true;
     }
+}
 
+function displayAISuggestions(tasks) {
     aiSuggestions.innerHTML = "";
 
     tasks.forEach(function(task) {
+        const taskTextValue = typeof task === "string"
+            ? task
+            : task.text || task.task;
+
+        if (typeof taskTextValue !== "string" || !taskTextValue.trim()) {
+            return;
+        }
+
         const li = document.createElement("li");
 
         const taskText = document.createElement("span");
-        taskText.textContent = task;
+        taskText.textContent = taskTextValue;
 
         const addButton = document.createElement("button");
+
         addButton.textContent = "Add to My Tasks";
         addButton.type = "button";
         addButton.classList.add("button", "ai-add-button");
 
         addButton.addEventListener("click", function() {
-            todosCount++;
-
-            const newTodo = {
-                text: task,
-                uniqueNo: todosCount,
-                isChecked: false
-            };
-
-            todoList.push(newTodo);
-            createAndAppendTodo(newTodo);
-            saveTodos();
+            addTodoToList(taskTextValue);
 
             addButton.textContent = "Added";
             addButton.disabled = true;
@@ -350,4 +294,6 @@ generateTasksButton.addEventListener("click", function() {
 
         aiSuggestions.appendChild(li);
     });
-});
+}
+
+generateTasksButton.addEventListener("click", generateAITasks);
