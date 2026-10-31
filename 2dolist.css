@@ -113,6 +113,43 @@
 .delete-icon {
     padding: 15px;
 }
+.ai-assistant-container {
+    background-color: #eef2ff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.ai-assistant-container h2 {
+    font-family: "Roboto";
+    font-size: 24px;
+    font-weight: 700;
+    color: #263779;
+}
+
+.ai-assistant-container textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#aiSuggestions {
+    padding-left: 20px;
+}
+
+#aiSuggestions li {
+    margin-top: 10px;
+    font-family: "Roboto";
+}
+
+#generateTasksButton {
+    margin-bottom: 15px;
+}
+
+#aiLoading {
+    color: #4c63b6;
+    margin-bottom: 10px;
+}
 
 .checked {
     text-decoration: line-through;
