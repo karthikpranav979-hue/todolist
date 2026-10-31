@@ -9,7 +9,7 @@ const aiTaskInput = document.getElementById("aiTaskInput");
 const aiSuggestions = document.getElementById("aiSuggestions");
 const aiLoading = document.getElementById("aiLoading");
 
-const AI_API_URL = "http://localhost:3000/api/breakdown";
+const AI_API_URL = "https://todolist-ai-backend.onrender.com";
 
 function getTodoListFromLocalStorage() {
     try {
